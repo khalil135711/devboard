@@ -1,6 +1,9 @@
 # DevBoard
 
 Jira-style ticket board with GitHub, CI/CD and Jitsi Meet links. No build step.
+<img width="1916" height="881" alt="Bildschirmfoto 2026-11-08 um 17 43 05" src="https://github.com/user-attachments/assets/b24143e1-8436-4bc8-a408-e5158e87b31f" />
+
+<img width="1916" height="881" alt="Bildschirmfoto 2026-11-08 um 17 43 15" src="https://github.com/user-attachments/assets/3dabfa0c-9e17-4e3d-84e5-5827f87fa96a" />
 
 ## Run
 Open `index.html` in a browser, or serve the folder:
