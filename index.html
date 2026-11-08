@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DevBoard</title>
+<style>
+:root{--bg:#eef1ee;--panel:#fff;--ink:#1c2626;--mute:#5d6b6b;--line:#d5dcd8;--acc:#0b6e66;--accink:#fff;--ok:#1a7f43;--bad:#b42318;--run:#a65f00;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121816;--panel:#1b2420;--ink:#e6ede9;--mute:#98a8a2;--line:#2e3b36;--acc:#3cc0b3;--accink:#06201d;--ok:#4ac17a;--bad:#ff8a7d;--run:#f0b04d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121816;--panel:#1b2420;--ink:#e6ede9;--mute:#98a8a2;--line:#2e3b36;--acc:#3cc0b3;--accink:#06201d;--ok:#4ac17a;--bad:#ff8a7d;--run:#f0b04d;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Trebuchet MS","Segoe UI",system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font:700 20px/1 Georgia,"Times New Roman",serif;margin:0 auto 0 0;letter-spacing:.2px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 11px;cursor:pointer}
+button:hover{border-color:var(--acc)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button.p{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+.bar{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px}.bar input{max-width:240px}.bar select{max-width:170px}
+.board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:12px;padding:6px 18px 24px;overflow-x:auto}
+.col{background:color-mix(in srgb,var(--line) 35%,transparent);border-radius:10px;padding:10px;min-height:260px}
+.col.over{outline:2px dashed var(--acc)}
+.col h2{font-size:14px;margin:0 0 8px;display:flex;justify-content:space-between}
+.card{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--mute);border-radius:8px;padding:9px 10px;margin-bottom:8px;cursor:grab}
+.card.high{border-left-color:var(--bad)}.card.med{border-left-color:var(--run)}.card.low{border-left-color:var(--ok)}
+.key{color:var(--mute);font-size:12px}.t{font-weight:600;margin:2px 0 6px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pill{font-size:12px;border:1px solid var(--line);border-radius:99px;padding:1px 8px;color:var(--mute)}
+.ci-passing{color:var(--ok);border-color:var(--ok)}.ci-failing{color:var(--bad);border-color:var(--bad)}.ci-running{color:var(--run);border-color:var(--run)}
+.card a,.card button{font-size:12px;padding:2px 7px;text-decoration:none;color:var(--acc);border:1px solid var(--line);border-radius:6px;background:transparent}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;width:min(520px,94vw);padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 3px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto;font-size:12px}
+.empty{color:var(--mute);font-size:13px;padding:8px 2px}
+</style>
+</head>
+<body>
+<header>
+  <h1>DevBoard</h1>
+  <button id="meet" class="p">Start team meeting</button>
+  <button id="newT">New ticket</button>
+  <button id="cfg">Settings</button>
+  <button id="ci">CI/CD setup</button>
+</header>
+<div class="bar">
+  <input id="q" type="search" placeholder="Search tickets" aria-label="Search tickets">
+  <select id="fp" aria-label="Filter by priority"><option value="">All priorities</option><option>high</option><option>med</option><option>low</option></select>
+  <button id="exp">Export JSON</button><button id="imp">Import JSON</button>
+</div>
+<main class="board" id="board"></main>
+
+<dialog id="dT"><form method="dialog" id="fT">
+  <h3 id="dTitle" style="margin:0 0 4px">Ticket</h3>
+  <label for="tTitle">Title</label><input id="tTitle" required>
+  <label for="tDesc">Description</label><textarea id="tDesc" rows="3"></textarea>
+  <div class="two"><div><label for="tType">Type</label><select id="tType"><option>feature</option><option>bug</option><option>chore</option></select></div>
+  <div><label for="tPri">Priority</label><select id="tPri"><option>high</option><option selected>med</option><option>low</option></select></div>
+  <div><label for="tWho">Assignee</label><input id="tWho"></div>
+  <div><label for="tCi">CI status</label><select id="tCi"><option value="">none</option><option>running</option><option>passing</option><option>failing</option></select></div>
+  <div><label for="tIssue">GitHub issue #</label><input id="tIssue" inputmode="numeric"></div>
+  <div><label for="tPr">GitHub pull request #</label><input id="tPr" inputmode="numeric"></div></div>
+  <div class="row" style="margin-top:16px"><button type="button" id="tDel">Delete</button><span style="flex:1"></span><button type="button" id="tCancel">Cancel</button><button class="p" id="tSave" type="submit">Save ticket</button></div>
+</form></dialog>
+
+<dialog id="dS"><h3 style="margin:0">Settings</h3>
+  <label for="sRepo">GitHub repository (owner/name)</label><input id="sRepo" placeholder="acme/web-app">
+  <label for="sProj">Ticket prefix</label><input id="sProj" placeholder="DEV">
+  <label for="sRoom">Jitsi room prefix</label><input id="sRoom" placeholder="acme-devboard">
+  <div class="row" style="margin-top:16px"><span style="flex:1"></span><button id="sCancel">Cancel</button><button class="p" id="sSave">Save settings</button></div>
+</dialog>
+
+<dialog id="dC"><h3 style="margin:0 0 6px">CI/CD setup</h3>
+  <p style="color:var(--mute);margin:0 0 8px">Name branches like <b>DEV-12-fix-login</b>. This workflow runs on those branches, and each ticket’s CI link filters GitHub Actions to its branch. Set CI status on the ticket, or automate it later with a webhook.</p>
+<pre id="yml"></pre>
+  <div class="row"><button id="cCopy">Copy workflow</button><span style="flex:1"></span><button class="p" id="cClose">Close</button></div>
+</dialog>
+
+<script>
+const COLS=[["backlog","Backlog"],["doing","In progress"],["review","In review"],["done","Done"]];
+let S={cfg:{repo:"",proj:"DEV",room:"devboard-team"},tickets:[],seq:1};
+try{const r=localStorage.getItem("devboard");if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const $=id=>document.getElementById(id);
+const save=()=>{try{localStorage.setItem("devboard",JSON.stringify(S))}catch(e){}};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40);
+const key=t=>S.cfg.proj+"-"+t.n, branch=t=>key(t)+"-"+slug(t.title);
+const gh=p=>S.cfg.repo?"https://github.com/"+S.cfg.repo+p:null;
+const room=s=>"https://meet.jit.si/"+encodeURIComponent(S.cfg.room+"-"+s);
+let editing=null,dragId=null;
+
+function render(){
+  const q=$("q").value.toLowerCase(),fp=$("fp").value;
+  $("board").innerHTML=COLS.map(([id,name])=>{
+    const ts=S.tickets.filter(t=>t.status===id&&(!fp||t.pri===fp)&&(!q||(key(t)+t.title+t.who).toLowerCase().includes(q)));
+    return `<section class="col" data-col="${id}"><h2>${name}<span class="pill">${ts.length}</span></h2>`+
+      (ts.map(card).join("")||`<div class="empty">${id==="backlog"?"No tickets yet. Select New ticket to add one.":"Drop tickets here."}</div>`)+`</section>`}).join("");
+}
+function card(t){
+  const ci=gh("/actions?query="+encodeURIComponent("branch:"+branch(t)));
+  const i=t.issue&&gh("/issues/"+t.issue),p=t.pr&&gh("/pull/"+t.pr);
+  return `<article class="card ${t.pri}" draggable="true" data-id="${t.id}">
+  <div class="key">${esc(key(t))} · ${esc(t.type)}${t.who?" · "+esc(t.who):""}</div>
+  <div class="t">${esc(t.title)}</div>
+  <div class="row">${t.ci?`<span class="pill ci-${t.ci}">CI ${t.ci}</span>`:""}
+  ${i?`<a href="${i}" target="_blank" rel="noopener">Issue #${esc(t.issue)}</a>`:""}
+  ${p?`<a href="${p}" target="_blank" rel="noopener">PR #${esc(t.pr)}</a>`:""}
+  ${ci?`<a href="${ci}" target="_blank" rel="noopener">CI runs</a>`:""}
+  <a href="${room(key(t))}" target="_blank" rel="noopener">Meet</a>
+  <button data-edit="${t.id}">Edit</button><button data-copy="${t.id}" title="Copy branch name">Branch</button></div></article>`;
+}
+function openT(id){
+  editing=id?S.tickets.find(t=>t.id===id):null;const t=editing||{};
+  $("dTitle").textContent=editing?key(t):"New ticket";
+  $("tTitle").value=t.title||"";$("tDesc").value=t.desc||"";$("tType").value=t.type||"feature";$("tPri").value=t.pri||"med";
+  $("tWho").value=t.who||"";$("tCi").value=t.ci||"";$("tIssue").value=t.issue||"";$("tPr").value=t.pr||"";
+  $("tDel").style.display=editing?"":"none";$("dT").showModal();
+}
+$("fT").addEventListener("submit",()=>{
+  const v={title:$("tTitle").value.trim(),desc:$("tDesc").value,type:$("tType").value,pri:$("tPri").value,who:$("tWho").value.trim(),ci:$("tCi").value,issue:$("tIssue").value.trim(),pr:$("tPr").value.trim()};
+  if(!v.title)return;
+  if(editing)Object.assign(editing,v);else S.tickets.push(Object.assign({id:"t"+Date.now(),n:S.seq++,status:"backlog"},v));
+  save();render();
+});
+$("tCancel").onclick=()=>$("dT").close();
+$("tDel").onclick=()=>{S.tickets=S.tickets.filter(t=>t!==editing);save();render();$("dT").close()};
+$("newT").onclick=()=>openT();
+$("meet").onclick=()=>window.open(room("standup"),"_blank","noopener");
+$("q").oninput=render;$("fp").onchange=render;
+
+$("board").addEventListener("click",e=>{
+  const ed=e.target.closest("[data-edit]"),cp=e.target.closest("[data-copy]");
+  if(ed)openT(ed.dataset.edit);
+  if(cp){const t=S.tickets.find(x=>x.id===cp.dataset.copy);const b="git checkout -b "+branch(t);
+    (navigator.clipboard?navigator.clipboard.writeText(b):Promise.reject()).then(()=>cp.textContent="Copied",()=>prompt("Copy this command",b));}
+});
+$("board").addEventListener("dragstart",e=>{const c=e.target.closest(".card");if(c){dragId=c.dataset.id;e.dataTransfer.setData("text/plain",dragId)}});
+$("board").addEventListener("dragover",e=>{const c=e.target.closest(".col");if(c){e.preventDefault();c.classList.add("over")}});
+$("board").addEventListener("dragleave",e=>{const c=e.target.closest(".col");if(c)c.classList.remove("over")});
+$("board").addEventListener("drop",e=>{const c=e.target.closest(".col");if(!c)return;e.preventDefault();
+  const t=S.tickets.find(x=>x.id===dragId);if(t){t.status=c.dataset.col;save()}render()});
+
+$("cfg").onclick=()=>{$("sRepo").value=S.cfg.repo;$("sProj").value=S.cfg.proj;$("sRoom").value=S.cfg.room;$("dS").showModal()};
+$("sCancel").onclick=()=>$("dS").close();
+$("sSave").onclick=()=>{S.cfg={repo:$("sRepo").value.trim().replace(/^https?:\/\/github\.com\//,""),proj:($("sProj").value.trim()||"DEV").toUpperCase(),room:slug($("sRoom").value)||"devboard-team"};save();render();$("dS").close()};
+
+const YML=`name: CI
+on:
+  push:
+    branches: ["main", "DEV-*"]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npm test
+      - run: npm run build`;
+$("yml").textContent=YML;
+$("ci").onclick=()=>$("dC").showModal();$("cClose").onclick=()=>$("dC").close();
+$("cCopy").onclick=()=>{try{navigator.clipboard.writeText(YML);$("cCopy").textContent="Copied"}catch(e){}};
+
+$("exp").onclick=()=>{const w=window.open("","_blank");if(w){w.document.write("<pre>"+esc(JSON.stringify(S,null,2))+"</pre>")}};
+$("imp").onclick=()=>{const j=prompt("Paste exported JSON");if(!j)return;try{S=Object.assign(S,JSON.parse(j));save();render()}catch(e){alert("That JSON could not be read.")}};
+render();
+</script>
+</body>
+</html>
